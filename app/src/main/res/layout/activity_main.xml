@@ -15,7 +15,6 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="268dp"
-        android:backgroundTint="#DDD32929"
         android:text="@string/start_tracking_location" />
 
     <TextView
@@ -25,7 +24,7 @@
         android:layout_below="@id/tracking_location_button"
         android:layout_centerInParent="true"
         android:layout_marginTop="50dp"
-        android:text="Your location:\n latitude,\n longitude,\n and accuracy"
+        android:text="@string/inf_tracking_location_text"
         android:textStyle="bold" />
 
     <TextView
@@ -35,7 +34,7 @@
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="34dp"
-        android:text="Your home location is defined as: \n <latitude, longitude>"
+        android:text="@string/inf_home_location_text"
         android:textSize="18sp"
         android:textStyle="bold" />
 
