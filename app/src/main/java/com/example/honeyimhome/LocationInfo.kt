@@ -1,4 +1,15 @@
 package com.example.honeyimhome
 
-class LocationInfo(val latitude:Double ,val longitude :Double,val accuracy:Float) {
+class LocationInfo(var latitude:Double ,var longitude :Double,var accuracy:Float) {
+    fun getLatitudeStr(): String {
+        return latitude.toString()
+    }
+
+    fun getLongitudeStr(): String {
+        return longitude.toString()
+    }
+
+    fun getAccuracyStr(): String {
+        return accuracy.toString()
+    }
 }

@@ -6,9 +6,8 @@ import android.content.*
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
-import android.net.ConnectivityManager
 import android.os.Bundle
-import android.os.Looper
+import android.preference.PreferenceManager
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -20,6 +19,7 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.android.gms.tasks.Task
+import com.google.gson.Gson
 
 
 class MainActivity : AppCompatActivity() {
@@ -33,7 +33,8 @@ class MainActivity : AppCompatActivity() {
     val END_RRACK_LOC = "end_location"
     val BUTTON_START_TEXT = "stop tracking"
     val BUTTON_END_TEXT = "start tracking"
-    val SP_CURRENT_LOCATION = "current_location"
+    var KEY_IS_TRACKING_ON_SP = "isTrackingOn"
+    var KEY_CUR_LOCATION_SP = "current_location"
     private lateinit var locationTracker: LocationTracker
     private lateinit var sp: SharedPreferences
     private lateinit var buttonLocation: Button
@@ -47,6 +48,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        sp= getSharedPreferences("main", Context.MODE_PRIVATE)
+        sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP,false).apply()
         initView()
         initBroadcastReceiver()
         initButton()
@@ -55,19 +58,30 @@ class MainActivity : AppCompatActivity() {
     fun initView() {
         latLocationTextView = findViewById(R.id.inf_tracking_location_TextView)
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
         buttonLocation = findViewById(R.id.tracking_location_button)
         buttonLocation.text = BUTTON_END_TEXT
         buttonLocation.setBackgroundColor(resources.getColor(R.color.colorGreen))//todo check
-        locationTracker= LocationTracker(this,mFusedLocationClient,NEW_LOCTAION,START_RRACK_LOC,END_RRACK_LOC)
+        locationTracker = LocationTracker(
+            this,
+            mFusedLocationClient,
+            sp,
+            NEW_LOCTAION,
+            START_RRACK_LOC,
+            END_RRACK_LOC
+        )
     }
 
     fun initButton() {
         buttonLocation.setOnClickListener(View.OnClickListener {
-                if (locationTracker.getIsTrackingOn()) {
-                    locationTracker.stopTracking()
-                } else {
-                    getLastLocation()
-                }
+            getLastLocation()
+            val isTra=sp.getBoolean(KEY_IS_TRACKING_ON_SP, false)
+            if (isTra) {
+                locationTracker.stopTracking()
+            } else {
+                locationTracker.startTracking()
+
+            }
         })
     }
 
@@ -82,11 +96,11 @@ class MainActivity : AppCompatActivity() {
                         Log.d("TAG_START", "Start Tracking") //todo
                     } //todo
                     NEW_LOCTAION -> {
-                        setLocation(
-                            locationTracker.getLatitude().toString(),
-                            locationTracker.getLongitude().toString(),
-                            locationTracker.getAaccuracy().toString()
+                        val currentLocation = Gson().fromJson(
+                            sp.getString(KEY_CUR_LOCATION_SP, ""),
+                            LocationInfo::class.java
                         )
+                        setLocation(currentLocation)
                         Log.d("TAG_NEW_LOCTAION", "NEW_LOCTAION Tracking") //todo
                     }
                     END_RRACK_LOC -> {
@@ -110,8 +124,7 @@ class MainActivity : AppCompatActivity() {
      */
     private fun checkPermissions(): Boolean {
         return ActivityCompat.checkSelfPermission(
-            this,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+            this, Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED &&
                 ActivityCompat.checkSelfPermission(
                     this,
@@ -144,7 +157,7 @@ class MainActivity : AppCompatActivity() {
         grantResults: IntArray
     ) {
         if (requestCode == PERMISSION_LOCATION_ID) {
-            if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                 // Granted. Start getting the location information
                 getLastLocation()
             }
@@ -179,28 +192,25 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun getLastLocation() {
+    private fun getLastLocation(){
         if (checkPermissions()) {
             if (isLocationEnabled()) {
-                mFusedLocationClient.lastLocation.addOnCompleteListener(
-                    object : OnCompleteListener<Location?> {
-                        override fun onComplete(task: Task<Location?>) {
-                            val location: Location? = task.result
-                            if (location != null) {
-                                setLocation(
-                                    location.altitude.toString(),
-                                    location.longitude.toString(),
-                                    location.accuracy.toString()
-                                )
-                            }
-                        }
+                mFusedLocationClient.lastLocation.addOnCompleteListener { task ->
+                    val location: Location? = task.result
+                    if (location != null) {
+                        val infLocation = LocationInfo(
+                            location.altitude,
+                            location.longitude,
+                            location.accuracy
+                        )
+                        setLocation(infLocation)
                     }
-                )
+                }
                 locationTracker = LocationTracker(
-                    this, mFusedLocationClient,
+                    this, mFusedLocationClient, sp,
                     NEW_LOCTAION, START_RRACK_LOC, END_RRACK_LOC
                 )
-                locationTracker.startTracking()
+
             } else {
                 //todo
                 Toast.makeText(this, "Turn on location", Toast.LENGTH_LONG).show()
@@ -235,9 +245,10 @@ class MainActivity : AppCompatActivity() {
 //        }
 //    }
 
-    private fun setLocation(latitude: String, longitude: String, accuracy: String) {
+    private fun setLocation(location: LocationInfo) {
         val newLocText =
-            "latitude:$latitude\nlongitude:$longitude\naccuracy$accuracy"
+            "latitude:${location.getLatitudeStr()}\nlongitude:${location.getLongitudeStr()
+            }\naccuracy${location.getAccuracyStr()}"
         latLocationTextView.text = newLocText //todo
     }
 

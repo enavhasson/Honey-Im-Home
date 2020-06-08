@@ -4,49 +4,46 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
+import com.google.gson.Gson
 
 
-class LocationTracker (private val context: Context,
-                       var fusedLocationClient: FusedLocationProviderClient, var newLocationStr: String
-                       , var startTrackLocStr :String, var endTrackLocStr :String){
-    var curlocation: LocationInfo?=null //todo
-    private var isTrackingOn :Boolean =false
+class LocationTracker(
+    private val context: Context,
+    var fusedLocationClient: FusedLocationProviderClient, var sp: SharedPreferences,
+    var newLocationStr: String
+    , var startTrackLocStr: String, var endTrackLocStr: String
+) {
+
+    var KEY_IS_TRACKING_ON_SP = "isTrackingOn"
+    var KEY_CUR_LOCATION_SP = "current_location"
+    private var isTrackingOn: Boolean = false
     private var TAG_PERMISSION_ERROR = "dont have runtime location permission"
 
     //start tracking the location and send a "started" boradcast intent
-    public fun startTracking(){
-        if(!checkPermissions()){
-            Log.e("TAG_PERMISSION_ERROR",TAG_PERMISSION_ERROR) //todo
-        }
-        else{
+    fun startTracking() {
+        if (!checkPermissions()) {
+            Log.e("TAG_PERMISSION_ERROR", TAG_PERMISSION_ERROR) //todo
+        } else {
             requestNewLocationData()
             sendBroadcast(startTrackLocStr)
-            isTrackingOn=true
+            isTrackingOn = true
+            sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP,isTrackingOn).apply()
         }
     }
-    fun getIsTrackingOn():Boolean{
+
+    fun getIsTrackingOn(): Boolean {
         return isTrackingOn
-    }
-    fun getLatitude(): Double? {
-        return curlocation?.latitude
-    }
-
-    fun getLongitude(): Double? {
-        return curlocation?.longitude
-    }
-
-    fun getAaccuracy(): Float? {
-        return curlocation?.accuracy
     }
 
     //stop tracking and send a "stopped" broadcast intent.
-    public fun stopTracking(){
+    fun stopTracking() {
         stopLocationUpdates()
         sendBroadcast(endTrackLocStr)
     }
@@ -57,16 +54,18 @@ class LocationTracker (private val context: Context,
         mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         mLocationRequest.interval = 10000;
         mLocationRequest.fastestInterval = 5000;
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
-
+//        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
         //todo
-        fusedLocationClient.requestLocationUpdates(mLocationRequest, mLocationCallback,
-            Looper.myLooper())
+        fusedLocationClient.requestLocationUpdates(
+            mLocationRequest, mLocationCallback,
+            Looper.myLooper()
+        )
     }
 
     //todo change fun name
-    fun newLocation(location: Location){
-        curlocation = LocationInfo(location.latitude,location.longitude,location.accuracy)
+    fun newLocation(location: Location) {
+        val curLocation = LocationInfo(location.latitude, location.longitude, location.accuracy)
+        sp.edit().putString(KEY_CUR_LOCATION_SP, Gson().toJson(curLocation)).apply()
         sendBroadcast(newLocationStr)
     }
 
@@ -77,7 +76,7 @@ class LocationTracker (private val context: Context,
         }
     }
 
-    fun sendBroadcast(broadcastMessage : String) {
+    fun sendBroadcast(broadcastMessage: String) {
         val intent = Intent()
         intent.action = broadcastMessage
         context.sendBroadcast(intent)
@@ -88,15 +87,20 @@ class LocationTracker (private val context: Context,
      * and ACCESS_FINE_LOCATION.
      */
     fun checkPermissions(): Boolean {
-        return ActivityCompat.checkSelfPermission(context,
-            Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                ActivityCompat.checkSelfPermission(context,
-                    Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        return ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun stopLocationUpdates() {
         fusedLocationClient.removeLocationUpdates(mLocationCallback)
-        isTrackingOn=false
+        isTrackingOn = false
+        sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP, isTrackingOn).apply()
     }
 
 
