@@ -98,10 +98,13 @@ class LocationTracker(
     }
 
     private fun stopLocationUpdates() {
-        fusedLocationClient.removeLocationUpdates(mLocationCallback)
+        destroyTracking()
         isTrackingOn = false
         sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP, isTrackingOn).apply()
     }
 
+    fun destroyTracking(){
+        fusedLocationClient.removeLocationUpdates(mLocationCallback)
+    }
 
 }

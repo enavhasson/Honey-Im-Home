@@ -24,7 +24,6 @@
         android:layout_below="@id/tracking_location_button"
         android:layout_centerInParent="true"
         android:layout_marginTop="50dp"
-        android:text="@string/inf_tracking_location_text"
         android:textStyle="bold" />
 
     <TextView
@@ -37,5 +36,25 @@
         android:text="@string/inf_home_location_text"
         android:textSize="18sp"
         android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/clear_home_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/inf_home_location_TextView"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="26dp"
+        android:background="#CC608B"
+        android:text="@string/clear_home_button_text" />
+
+    <Button
+        android:id="@+id/set_home_location_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/clear_home_button"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="26dp"
+        android:background="#72B9DF"
+        android:text="@string/set_home_location_button_text" />
 
 </RelativeLayout>

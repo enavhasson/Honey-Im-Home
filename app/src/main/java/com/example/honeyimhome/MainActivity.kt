@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -17,9 +16,8 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.android.gms.tasks.Task
 import com.google.gson.Gson
+import kotlinx.android.synthetic.main.activity_main.*
 
 
 class MainActivity : AppCompatActivity() {
@@ -35,33 +33,46 @@ class MainActivity : AppCompatActivity() {
     val BUTTON_END_TEXT = "start tracking"
     var KEY_IS_TRACKING_ON_SP = "isTrackingOn"
     var KEY_CUR_LOCATION_SP = "current_location"
+    var KEY_USER_HOME_LOCATION_SP = "user_home_location"
+    val NUM_TO_PRESENT_HOME_BUTTON = 50
     private lateinit var locationTracker: LocationTracker
     private lateinit var sp: SharedPreferences
     private lateinit var buttonLocation: Button
+    private lateinit var buttonClearHome: Button
+    private lateinit var buttonSetHomeLocation: Button
     private lateinit var broadCastReceiver: BroadcastReceiver
 
     /*get users current position*/
     private lateinit var mFusedLocationClient: FusedLocationProviderClient
-    private lateinit var latLocationTextView: TextView
-
+    private lateinit var lastLocationTextView: TextView
+    private lateinit var userHomeLocationTextView: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        sp= getSharedPreferences("main", Context.MODE_PRIVATE)
-        sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP,false).apply()
+        sp = getSharedPreferences("main", Context.MODE_PRIVATE)
+        sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP, false).apply()//todo
         initView()
         initBroadcastReceiver()
         initButton()
     }
 
     fun initView() {
-        latLocationTextView = findViewById(R.id.inf_tracking_location_TextView)
+        lastLocationTextView = findViewById(R.id.inf_tracking_location_TextView)
+        userHomeLocationTextView = findViewById(R.id.inf_home_location_TextView)
+        if (!sp.contains(KEY_USER_HOME_LOCATION_SP)) {
+            userHomeLocationTextView.visibility = View.INVISIBLE
+        }
+        if (!sp.contains(KEY_CUR_LOCATION_SP)) {
+            lastLocationTextView.visibility = View.INVISIBLE
+        }
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         buttonLocation = findViewById(R.id.tracking_location_button)
         buttonLocation.text = BUTTON_END_TEXT
         buttonLocation.setBackgroundColor(resources.getColor(R.color.colorGreen))//todo check
+        buttonClearHome = findViewById(R.id.clear_home_button)
+        buttonSetHomeLocation = findViewById(R.id.set_home_location_button)
         locationTracker = LocationTracker(
             this,
             mFusedLocationClient,
@@ -73,9 +84,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun initButton() {
+        initLocationTrackerButton()
+        initClearHomeButton()
+        initSetHomeLocationButton()
+    }
+
+    fun initLocationTrackerButton() {
         buttonLocation.setOnClickListener(View.OnClickListener {
             getLastLocation()
-            val isTra=sp.getBoolean(KEY_IS_TRACKING_ON_SP, false)
+            val isTra = sp.getBoolean(KEY_IS_TRACKING_ON_SP, false)
             if (isTra) {
                 locationTracker.stopTracking()
             } else {
@@ -83,6 +100,35 @@ class MainActivity : AppCompatActivity() {
 
             }
         })
+    }
+
+    fun initClearHomeButton() {
+        buttonClearHome.setOnClickListener(View.OnClickListener {
+            if (sp.contains(KEY_USER_HOME_LOCATION_SP)) {
+                sp.edit().remove(KEY_USER_HOME_LOCATION_SP).apply()
+                userHomeLocationTextView.visibility = View.INVISIBLE
+                buttonClearHome.visibility = View.INVISIBLE
+            }
+        })
+        buttonClearHome.visibility = View.INVISIBLE
+
+    }
+
+    fun initSetHomeLocationButton() {
+        buttonSetHomeLocation.setOnClickListener(View.OnClickListener {
+            val curLocationStr =sp.getString(KEY_CUR_LOCATION_SP,"")
+            if (curLocationStr.equals("")){
+                throw Throwable("current location is empty while set home location")//todo
+            }
+            sp.edit().putString(KEY_USER_HOME_LOCATION_SP,curLocationStr).apply()
+
+            val homeLocation = Gson().fromJson(curLocationStr ,LocationInfo::class.java)
+            setUserHomeText(homeLocation)
+            buttonClearHome.visibility= View.VISIBLE
+            userHomeLocationTextView.visibility= View.VISIBLE
+        })
+        buttonSetHomeLocation.visibility = View.INVISIBLE
+        userHomeLocationTextView.visibility = View.INVISIBLE
     }
 
     private fun initBroadcastReceiver() {
@@ -101,6 +147,7 @@ class MainActivity : AppCompatActivity() {
                             LocationInfo::class.java
                         )
                         setLocation(currentLocation)
+                        setVisibleHomeLocationButton(currentLocation)
                         Log.d("TAG_NEW_LOCTAION", "NEW_LOCTAION Tracking") //todo
                     }
                     END_RRACK_LOC -> {
@@ -192,7 +239,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun getLastLocation(){
+    private fun getLastLocation() {
         if (checkPermissions()) {
             if (isLocationEnabled()) {
                 mFusedLocationClient.lastLocation.addOnCompleteListener { task ->
@@ -222,6 +269,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(broadCastReceiver)
+        locationTracker.destroyTracking()
+    }
+
 //    @SuppressLint("MissingPermission")
 //    private fun requestNewLocationData() {
 //        val mLocationRequest = LocationRequest()
@@ -245,11 +298,33 @@ class MainActivity : AppCompatActivity() {
 //        }
 //    }
 
-    private fun setLocation(location: LocationInfo) {
-        val newLocText =
-            "latitude:${location.getLatitudeStr()}\nlongitude:${location.getLongitudeStr()
-            }\naccuracy${location.getAccuracyStr()}"
-        latLocationTextView.text = newLocText //todo
+    fun checkUserHomeLocation() {
+        val userHomeStr = sp.getString(KEY_USER_HOME_LOCATION_SP, "")
+        if (userHomeStr.equals("")) {
+
+        } else {
+            val userHomeLoc = Gson().fromJson(userHomeStr, LocationInfo::class.java)
+            setUserHomeText(userHomeLoc)
+
+        }
     }
 
+    fun setUserHomeText(userHomeLoc: LocationInfo){
+        val userHomeText = "your home location is defined as:\n" + "<latitude:" +
+                "${userHomeLoc.getLatitudeStr()}, longitude:${userHomeLoc.getLongitudeStr()}>"
+        userHomeLocationTextView.text = userHomeText
+    }
+
+    private fun setLocation(location: LocationInfo) {
+        val newLocText = "Your location:\n" +
+            "latitude:${location.getLatitudeStr()}\nlongitude:${location.getLongitudeStr()
+            }\naccuracy${location.getAccuracyStr()}"
+        lastLocationTextView.text = newLocText
+    }
+
+    fun setVisibleHomeLocationButton(currentLocation: LocationInfo) {
+        if (currentLocation.getAccuracy()!! < NUM_TO_PRESENT_HOME_BUTTON) {
+            buttonSetHomeLocation.visibility = View.VISIBLE
+        }
+    }
 }

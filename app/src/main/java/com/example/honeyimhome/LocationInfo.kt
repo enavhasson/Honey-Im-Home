@@ -12,4 +12,8 @@ class LocationInfo(var latitude:Double ,var longitude :Double,var accuracy:Float
     fun getAccuracyStr(): String {
         return accuracy.toString()
     }
+
+    fun getAccuracy(): Float? {
+        return accuracy
+    }
 }
