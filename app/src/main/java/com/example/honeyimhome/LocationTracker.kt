@@ -14,15 +14,16 @@ import com.google.android.gms.location.*
 import com.google.gson.Gson
 
 
+
 class LocationTracker(
     private val context: Context,
-    var fusedLocationClient: FusedLocationProviderClient, var sp: SharedPreferences,
-    var newLocationStr: String
-    , var startTrackLocStr: String, var endTrackLocStr: String
+    var fusedLocationClient: FusedLocationProviderClient, var sp: SharedPreferences
 ) {
-
-    var KEY_IS_TRACKING_ON_SP = "isTrackingOn"
-    var KEY_CUR_LOCATION_SP = "current_location"
+    public val NEW_LOCTAION = "new_location"
+    public val END_TRACK_LOC = "end_location"
+    public val START_TRACK_LOC = "start_location"
+    public val KEY_IS_TRACKING_ON_SP = "isTrackingOn"
+    public val KEY_CUR_LOCATION_SP = "current_location"
     private var isTrackingOn: Boolean = false
     private var TAG_PERMISSION_ERROR = "dont have runtime location permission"
 
@@ -32,7 +33,7 @@ class LocationTracker(
             Log.e("TAG_PERMISSION_ERROR", TAG_PERMISSION_ERROR) //todo
         } else {
             requestNewLocationData()
-            sendBroadcast(startTrackLocStr)
+            sendBroadcast(START_TRACK_LOC)
             isTrackingOn = true
             sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP,isTrackingOn).apply()
         }
@@ -45,7 +46,7 @@ class LocationTracker(
     //stop tracking and send a "stopped" broadcast intent.
     fun stopTracking() {
         stopLocationUpdates()
-        sendBroadcast(endTrackLocStr)
+        sendBroadcast(END_TRACK_LOC)
     }
 
     @SuppressLint("MissingPermission")
@@ -54,7 +55,7 @@ class LocationTracker(
         mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         mLocationRequest.interval = 10000;
         mLocationRequest.fastestInterval = 5000;
-//        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
         //todo
         fusedLocationClient.requestLocationUpdates(
             mLocationRequest, mLocationCallback,
@@ -66,7 +67,7 @@ class LocationTracker(
     fun newLocation(location: Location) {
         val curLocation = LocationInfo(location.latitude, location.longitude, location.accuracy)
         sp.edit().putString(KEY_CUR_LOCATION_SP, Gson().toJson(curLocation)).apply()
-        sendBroadcast(newLocationStr)
+        sendBroadcast(NEW_LOCTAION)
     }
 
     private val mLocationCallback: LocationCallback = object : LocationCallback() {

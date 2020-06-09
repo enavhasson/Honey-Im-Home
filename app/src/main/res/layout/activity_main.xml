@@ -12,9 +12,9 @@
         android:id="@+id/tracking_location_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="268dp"
+        android:layout_below="@+id/set_home_location_button"
+        android:layout_centerInParent="true"
+        android:layout_marginTop="35dp"
         android:text="@string/start_tracking_location" />
 
     <TextView
@@ -23,7 +23,7 @@
         android:layout_height="wrap_content"
         android:layout_below="@id/tracking_location_button"
         android:layout_centerInParent="true"
-        android:layout_marginTop="50dp"
+        android:layout_marginTop="10sp"
         android:textStyle="bold" />
 
     <TextView
@@ -42,8 +42,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_below="@id/inf_home_location_TextView"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="26dp"
+        android:layout_alignParentEnd="true"
+
+        android:layout_marginTop="43dp"
+        android:layout_marginEnd="19dp"
         android:background="#CC608B"
         android:text="@string/clear_home_button_text" />
 
@@ -51,9 +53,10 @@
         android:id="@+id/set_home_location_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/clear_home_button"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="26dp"
+        android:layout_below="@id/inf_home_location_TextView"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="19dp"
+        android:layout_marginTop="43dp"
         android:background="#72B9DF"
         android:text="@string/set_home_location_button_text" />
 
