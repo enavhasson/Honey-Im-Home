@@ -57,6 +57,9 @@ class MainActivity : AppCompatActivity() {
                 setViewOnNewLocation()
             }
         }
+        else{
+            sp.edit().putBoolean(locationTracker.KEY_IS_TRACKING_ON_SP,false).apply()
+        }
 //        if (!sp.contains(KEY_CUR_LOCATION_SP)) {//todo
 //            lastLocationTextView.visibility = View.INVISIBLE
 //        }
