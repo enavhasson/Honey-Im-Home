@@ -1,8 +1,10 @@
 <resources>
     <string name="app_name">Honey Im Home</string>
-    <string name="start_tracking_location">start tracking location</string>
-    <string name="inf_home_location_text">Your home location is defined as:</string>
-    <string name="inf_tracking_location_text">Your location:</string>
+    <string name="start_tracking_location">" start tracking location "</string>
+    <string name="inf_home_location_text">" Your home location is defined as: "</string>
+    <string name="inf_tracking_location_text">" Your location: "</string>
     <string name="clear_home_button_text">" Clear Home  "</string>
-    <string name="set_home_location_button_text">set location as home</string>
+    <string name="set_home_location_button_text">" set location as home "</string>
+    <string name="set_sms_phone_number">" set SMS phone number "</string>
+    <string name="test_sms">" test SMS "</string>
 </resources>
