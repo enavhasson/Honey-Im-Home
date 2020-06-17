@@ -12,16 +12,18 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
 import com.google.gson.Gson
 
+val NEW_LOCTAION = "new_location"
+val END_TRACK_LOC = "end_location"
+val START_TRACK_LOC = "start_location"
+val KEY_IS_TRACKING_ON_SP = "isTrackingOn"
+val KEY_CUR_LOCATION_SP = "current_location"
+
 
 class LocationTracker(
     private val context: Context,
     var fusedLocationClient: FusedLocationProviderClient, var sp: SharedPreferences
 ) {
-    val NEW_LOCTAION = "new_location"
-    val END_TRACK_LOC = "end_location"
-    val START_TRACK_LOC = "start_location"
-    val KEY_IS_TRACKING_ON_SP = "isTrackingOn"
-    val KEY_CUR_LOCATION_SP = "current_location"
+
     private var isTrackingOn: Boolean = false
     private var TAG_PERMISSION_ERROR = "don't have runtime location permission"
 

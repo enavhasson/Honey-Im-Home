@@ -17,6 +17,12 @@ import com.google.android.gms.location.LocationServices
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
 
+var KEY_USER_HOME_LOCATION_SP = "user_home_location"
+var KEY_PHONE_NUMBER_SP = "phone_number"
+val PHONE_NUM_INTENT = "phone_number"
+val CONTEXT_INTENT = "context"
+val SMS_MESSAGE = "Honey I'm Home!"
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -26,8 +32,7 @@ class MainActivity : AppCompatActivity() {
 
     private val BUTTON_START_TEXT = "stop tracking"
     private val BUTTON_END_TEXT = "start tracking"
-    private var KEY_USER_HOME_LOCATION_SP = "user_home_location"
-    private var KEY_PHONE_NUMBER_SP = "phone_number"
+
     private val NUM_TO_PRESENT_HOME_BUTTON = 50
 
     private lateinit var locationTracker: LocationTracker
@@ -48,7 +53,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        sp = getSharedPreferences("main", Context.MODE_PRIVATE)
+        sp = getSharedPreferences("mainSP", Context.MODE_PRIVATE)
 
         //get users current position
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -60,13 +65,13 @@ class MainActivity : AppCompatActivity() {
         checkUserHomeLocation()
 
         if (savedInstanceState == null) {
-            sp.edit().putBoolean(locationTracker.KEY_IS_TRACKING_ON_SP, false).apply()
+            sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP, false).apply()
         }
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
-        if (sp.getBoolean(locationTracker.KEY_IS_TRACKING_ON_SP, false)) {
+        if (sp.getBoolean(KEY_IS_TRACKING_ON_SP, false)) {
             if (isLocationEnabled()) {
                 setViewOnStartTracking()
                 setViewOnNewLocation()
@@ -127,7 +132,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun initSetHomeLocationButton() {
         buttonSetHomeLocation.setOnClickListener(View.OnClickListener {
-            val curLocationStr = sp.getString(locationTracker.KEY_CUR_LOCATION_SP, "")
+            val curLocationStr = sp.getString(KEY_CUR_LOCATION_SP, "")
             if (curLocationStr.equals("")) {
                 Log.d("TAP_HOME_LOCATION",
                     "current location is empty while set home location")
@@ -155,9 +160,10 @@ class MainActivity : AppCompatActivity() {
 
     fun setViewOnNewLocation() {
         val currentLocation = Gson().fromJson(
-            sp.getString(locationTracker.KEY_CUR_LOCATION_SP, ""),
+            sp.getString(KEY_CUR_LOCATION_SP, null),
             LocationInfo::class.java
         )
+
         setLocation(currentLocation)
         lastLocationTextView.visibility = View.VISIBLE
         setVisibleHomeLocationButton(currentLocation)
@@ -183,15 +189,15 @@ class MainActivity : AppCompatActivity() {
         this.locationBroadCastReceiver = object : BroadcastReceiver() {
             override fun onReceive(contxt: Context?, intent: Intent?) {
                 when (intent?.action) {
-                    locationTracker.START_TRACK_LOC -> {
+                    START_TRACK_LOC -> {
                         setViewOnStartTracking()
                         Log.d("TAG_START_TRACKING", "Start Tracking")
                     }
-                    locationTracker.NEW_LOCTAION -> {
+                    NEW_LOCTAION -> {
                         setViewOnNewLocation()
                         Log.d("TAG_NEW_LOCATION", "NEW_LOCATION Tracking")
                     }
-                    locationTracker.END_TRACK_LOC -> {
+                    END_TRACK_LOC -> {
                         setViewOnEndTracking()
                         Log.d("TAG_END_TRACKING", "End Tracking")
                     }
@@ -201,9 +207,9 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val intentFilter = IntentFilter()
-        intentFilter.addAction(locationTracker.START_TRACK_LOC)
-        intentFilter.addAction(locationTracker.END_TRACK_LOC)
-        intentFilter.addAction(locationTracker.NEW_LOCTAION)
+        intentFilter.addAction(START_TRACK_LOC)
+        intentFilter.addAction(END_TRACK_LOC)
+        intentFilter.addAction(NEW_LOCTAION)
         this.registerReceiver(locationBroadCastReceiver, intentFilter)
     }
 
@@ -348,7 +354,7 @@ class MainActivity : AppCompatActivity() {
     private fun checkLocationPermissions() {
         if (checkManifestLocationPermissions()) {
             if (isLocationEnabled()) {
-                val isTra = sp.getBoolean(locationTracker.KEY_IS_TRACKING_ON_SP, false)
+                val isTra = sp.getBoolean(KEY_IS_TRACKING_ON_SP, false)
                 if (isTra) {
                     locationTracker.stopTracking()
                     //button invisibility handle in BroadcastReceiver
@@ -448,8 +454,8 @@ class MainActivity : AppCompatActivity() {
     private fun initTestSmsButton() {
         testSmsButton.setOnClickListener(View.OnClickListener {
             val intent = Intent("POST_PC.ACTION_SEND_SMS")
-            intent.putExtra("phone_number",sp.getString(KEY_PHONE_NUMBER_SP,null))
-            intent.putExtra("context","Honey I'm Home!")
+            intent.putExtra(PHONE_NUM_INTENT,sp.getString(KEY_PHONE_NUMBER_SP,null))
+            intent.putExtra(CONTEXT_INTENT, SMS_MESSAGE)
             LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
 
         })
