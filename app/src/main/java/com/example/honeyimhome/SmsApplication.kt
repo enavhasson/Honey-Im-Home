@@ -8,7 +8,7 @@ class SmsApplication: Application() {
 
     override fun onCreate() {
         super.onCreate()
-        val receiver=LocalSendSmsBroadcastReceiver(this)
+        val receiver=LocalSendSmsBroadcastReceiver()
         LocalBroadcastManager.getInstance(this).registerReceiver(receiver, IntentFilter("POST_PC.ACTION_SEND_SMS"))
     }
 }

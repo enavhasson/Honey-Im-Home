@@ -1,6 +1,7 @@
 package com.example.honeyimhome
 
 import android.Manifest
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -15,20 +16,20 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
 
-class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastReceiver() {
-    private val PHONE_NUM = "0547228509"
-    private val SMS_MESSAGE_CONTENT = "hello to beautiful ex6"
+class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
+    private val PHONE_NUM = "phone_number"
+    private val SMS_MESSAGE_CONTENT = "context"
     private val EMPTY_SP_VALUE = ""
     private val channelId = "SMS_CHANNEL_ID"
 
     override fun onReceive(context: Context?, intent: Intent?) {
         //safe check
         //no date ,or not interesting intent action
-        if (intent == null || intent.action != "POST_PC.ACTION_SEND_SMS") {
+        if (intent == null || intent.action != "POST_PC.ACTION_SEND_SMS"|| context == null) {
             return
         }
 
-        checkRunTimeSmsPermission()
+        checkRunTimeSmsPermission(context)
 
         //have run time sms permission
         val phoneNum = intent.getStringExtra(PHONE_NUM)
@@ -38,10 +39,11 @@ class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastRec
 
         //phone number and content sms message have a values
         sendSMSMessage(phoneNum, contentSmsMes)
-        createPushNotification(phoneNum, contentSmsMes)
+        createSmsChannelIfNotExists(context)
+        createPushNotification(phoneNum, contentSmsMes,context)
     }
 
-    private fun createSmsChannelIfNotExists() {
+    private fun createSmsChannelIfNotExists(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -65,14 +67,14 @@ class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastRec
     }
 
 
-    private fun createPushNotification(phoneNum: String?, contentSmsMessage: String?) {
+    private fun createPushNotification(phoneNum: String?, contentSmsMessage: String?,context: Context) {
         //phone number and content sms message have a values
         val notification = NotificationCompat.Builder(context, channelId)
+            .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentText("sending sms to $phoneNum:$contentSmsMessage")
             .setContentTitle("ex6 - Honey Im Home!")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
-        //        notification.flags = notification.flags or Notification.FLAG_AUTO_CANCEL//todo?
 
         // notificationId is a unique int for each notification that you must define
         val notificationId = 6
@@ -105,8 +107,8 @@ class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastRec
         }
     }
 
-    private fun checkRunTimeSmsPermission() {
-        val runTimePerm = isSmsPermissionGranted()
+    private fun checkRunTimeSmsPermission(context: Context) {
+        val runTimePerm = isSmsPermissionGranted(context)
         if (!runTimePerm) {//not have Run Time Sms Permission
             Log.e("TAG_SMS_Permission", "don't have SMS Permission")
             return
@@ -116,7 +118,7 @@ class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastRec
     /**
      * Check if we have SMS permission
      */
-    private fun isSmsPermissionGranted(): Boolean {
+    private fun isSmsPermissionGranted(context: Context): Boolean {
         return ActivityCompat.checkSelfPermission(
             context,
             Manifest.permission.SEND_SMS

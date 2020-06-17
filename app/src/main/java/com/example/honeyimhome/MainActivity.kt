@@ -10,10 +10,7 @@ import android.provider.Settings
 import android.text.InputType
 import android.util.Log
 import android.view.View
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationServices
@@ -106,6 +103,7 @@ class MainActivity : AppCompatActivity() {
         initClearHomeButton()
         initSetHomeLocationButton()
         initSetSmsPhoneNumButton()
+        initTestSmsButton()
         initDelPhoneNumButton()
     }
 
@@ -177,6 +175,8 @@ class MainActivity : AppCompatActivity() {
         setButtonEndTrackView()
         lastLocationTextView.visibility = View.INVISIBLE
         buttonSetHomeLocation.visibility = View.INVISIBLE
+        testSmsButton.visibility= View.INVISIBLE
+        deletePhoneNumButton.visibility=View.INVISIBLE
     }
 
     private fun initBroadcastReceiver() {
@@ -402,10 +402,10 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private fun addPhoneNumToSp(){
-        val phoneNum = showAddPhoneNumDialog(this)
-        if (phoneNum != "" || phoneNum.isEmpty()) {//todo check if its can be
-            sp.edit().putString(phoneNum,null).apply()
+    private fun addPhoneNumToSp(phoneNum:String){
+        //todo check for invalid value(not number ...)
+        if (phoneNum != "" && phoneNum.isNotEmpty()) {//todo check if its can be
+            sp.edit().putString(KEY_PHONE_NUMBER_SP,phoneNum).apply()
             testSmsButton.visibility=View.VISIBLE
             deletePhoneNumButton.visibility=View.VISIBLE
         }
@@ -419,7 +419,8 @@ class MainActivity : AppCompatActivity() {
         val hasSmsPermission =ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) ==
                 PackageManager.PERMISSION_GRANTED
         if(hasSmsPermission){
-            addPhoneNumToSp()
+            showAddPhoneNumDialog(this)
+//            addPhoneNumToSp()
         }
         else{
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS),
@@ -427,23 +428,22 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun showAddPhoneNumDialog(c: Context): String {
-        var task= ""
+    private fun showAddPhoneNumDialog(c: Context) {
         val inputText = EditText(c)
         inputText.setRawInputType(InputType.TYPE_CLASS_PHONE)
-        val dialog: AlertDialog = AlertDialog.Builder(c)
+        val dialog = AlertDialog.Builder(c)
             .setTitle("Add a phone number")
             .setMessage("Phone number: ")
             .setView(inputText)
-            .setPositiveButton("Add",
-                DialogInterface.OnClickListener { dialog, which ->
-                    task = inputText.text.toString()
-                })
+            .setPositiveButton("Add"){ dialog, which ->
+                    val input = inputText.text.toString()
+                    addPhoneNumToSp(input)
+                }
             .setNegativeButton("Cancel", null)
             .create()
         dialog.show()
-        return task
     }
+
 
     private fun initTestSmsButton() {
         testSmsButton.setOnClickListener(View.OnClickListener {
@@ -461,6 +461,7 @@ class MainActivity : AppCompatActivity() {
           if(sp.contains(KEY_PHONE_NUMBER_SP)){
               sp.edit().remove(KEY_PHONE_NUMBER_SP).apply()
               deletePhoneNumButton.visibility=View.INVISIBLE
+              testSmsButton.visibility=View.INVISIBLE
           }
         })
         deletePhoneNumButton.visibility=View.INVISIBLE
