@@ -1,19 +1,23 @@
 package com.example.honeyimhome
 
 import android.Manifest
+import android.app.AlertDialog
 import android.content.*
 import android.content.pm.PackageManager
 import android.location.LocationManager
 import android.os.Bundle
 import android.provider.Settings
+import android.text.InputType
 import android.util.Log
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
-import com.google.android.gms.location.*
+import com.google.android.gms.location.LocationServices
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
 
 
@@ -21,21 +25,27 @@ class MainActivity : AppCompatActivity() {
 
     /* identify user's action with which permission request.*/
     private val PERMISSION_LOCATION_ID = 44
+    private val PERMISSION_SMS_ID = 1546
 
     private val BUTTON_START_TEXT = "stop tracking"
     private val BUTTON_END_TEXT = "start tracking"
     private var KEY_USER_HOME_LOCATION_SP = "user_home_location"
+    private var KEY_PHONE_NUMBER_SP = "phone_number"
     private val NUM_TO_PRESENT_HOME_BUTTON = 50
 
     private lateinit var locationTracker: LocationTracker
     private lateinit var sp: SharedPreferences
+    private lateinit var locationBroadCastReceiver: BroadcastReceiver
 
     private lateinit var buttonLocation: Button
     private lateinit var buttonClearHome: Button
     private lateinit var buttonSetHomeLocation: Button
-    private lateinit var broadCastReceiver: BroadcastReceiver
+
     private lateinit var lastLocationTextView: TextView
     private lateinit var userHomeLocationTextView: TextView
+    private lateinit var setSmsPhoneNumButton: Button
+    private lateinit var testSmsButton:Button
+    private lateinit var deletePhoneNumButton:Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +81,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        unregisterReceiver(broadCastReceiver)
+        unregisterReceiver(locationBroadCastReceiver)
         locationTracker.destroyTracking()
     }
 
@@ -85,12 +95,18 @@ class MainActivity : AppCompatActivity() {
 
         buttonClearHome = findViewById(R.id.clear_home_button)
         buttonSetHomeLocation = findViewById(R.id.set_home_location_button)
+
+        setSmsPhoneNumButton = findViewById(R.id.set_SMS_phone_number_button)
+        testSmsButton = findViewById(R.id.test_SMS_button)
+        deletePhoneNumButton= findViewById(R.id.delete_phone_number_button)
     }
 
     private fun initButton() {
         initLocationTrackerButton()
         initClearHomeButton()
         initSetHomeLocationButton()
+        initSetSmsPhoneNumButton()
+        initDelPhoneNumButton()
     }
 
     private fun initLocationTrackerButton() {
@@ -164,7 +180,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initBroadcastReceiver() {
-        this.broadCastReceiver = object : BroadcastReceiver() {
+        this.locationBroadCastReceiver = object : BroadcastReceiver() {
             override fun onReceive(contxt: Context?, intent: Intent?) {
                 when (intent?.action) {
                     locationTracker.START_TRACK_LOC -> {
@@ -179,6 +195,8 @@ class MainActivity : AppCompatActivity() {
                         setViewOnEndTracking()
                         Log.d("TAG_END_TRACKING", "End Tracking")
                     }
+
+
                 }
             }
         }
@@ -186,7 +204,7 @@ class MainActivity : AppCompatActivity() {
         intentFilter.addAction(locationTracker.START_TRACK_LOC)
         intentFilter.addAction(locationTracker.END_TRACK_LOC)
         intentFilter.addAction(locationTracker.NEW_LOCTAION)
-        this.registerReceiver(broadCastReceiver, intentFilter)
+        this.registerReceiver(locationBroadCastReceiver, intentFilter)
     }
 
 
@@ -196,7 +214,7 @@ class MainActivity : AppCompatActivity() {
      * This method will tell us whether or not the user grant us to access ACCESS_COARSE_LOCATION
      * and ACCESS_FINE_LOCATION.
      */
-    private fun checkPermissions(): Boolean {
+    private fun checkManifestLocationPermissions(): Boolean {
         return ActivityCompat.checkSelfPermission(
             this,
             Manifest.permission.ACCESS_COARSE_LOCATION
@@ -223,10 +241,9 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /**
+    /*
      * This method is called when a user Allow or Deny our requested permissions.
      * So it will help us to move forward if the permissions are granted.
-     */
     override fun onRequestPermissionsResult(
         requestCode: Int, permissions: Array<String?>,
         grantResults: IntArray
@@ -236,13 +253,22 @@ class MainActivity : AppCompatActivity() {
                 // Granted. Start getting the location information
                 buttonLocation.performClick()
             }
-        } else {
+        }
+        else if(requestCode == PERMISSION_SMS_ID) {
+            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Granted. Start getting the location information
+                buttonLocation.performClick()
+            }
+        }
+        else {
             // the user has denied our request! =-O
             if (ActivityCompat.shouldShowRequestPermissionRationale(
                     this, Manifest.permission.ACCESS_COARSE_LOCATION
                 ) || ActivityCompat.shouldShowRequestPermissionRationale(
                     this, Manifest.permission.ACCESS_FINE_LOCATION
-                )
+                )||ActivityCompat.shouldShowRequestPermissionRationale(
+                    this,
+                    Manifest.permission.SEND_SMS)
             ) {
                 // reached here? means we asked the user for this permission more than once,
                 // and they still refuse. This would be a good time to open up a dialog
@@ -252,6 +278,58 @@ class MainActivity : AppCompatActivity() {
                     "App can't operate without location permission",
                     Toast.LENGTH_LONG
                 ).show()
+            }
+        }
+    }
+    */
+
+    /**
+     * This method is called when a user Allow or Deny our requested permissions.
+     * So it will help us to move forward if the permissions are granted.*/
+    @Override
+    override fun onRequestPermissionsResult(
+        requestCode: Int, permissions: Array<String?>,
+        grantResults: IntArray
+    ) {
+        when (requestCode) {
+            PERMISSION_LOCATION_ID -> {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Granted. Start getting the location information
+                    buttonLocation.performClick()
+                } else {
+                    // the user has denied our request! =-O
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(
+                            this, Manifest.permission.ACCESS_COARSE_LOCATION
+                        ) || ActivityCompat.shouldShowRequestPermissionRationale(
+                            this, Manifest.permission.ACCESS_FINE_LOCATION
+                        )
+                    ) {
+                        // reached here? means we asked the user for this permission more than once,
+                        // and they still refuse. This would be a good time to open up a dialog
+                        // explaining why we need this permission
+                        Toast.makeText(
+                            applicationContext,
+                            "App can't operate without location permission",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+            PERMISSION_SMS_ID -> {
+                if (grantResults.isNotEmpty()
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED
+                ) {
+                    setSmsPhoneNumButton.performClick()
+                } else {
+                    if (ActivityCompat.shouldShowRequestPermissionRationale(
+                            this, Manifest.permission.SEND_SMS
+                        )
+                    ) { Toast.makeText(
+                            applicationContext,
+                            "SMS faild, please try again.", Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
             }
         }
     }
@@ -268,7 +346,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun checkLocationPermissions() {
-        if (checkPermissions()) {
+        if (checkManifestLocationPermissions()) {
             if (isLocationEnabled()) {
                 val isTra = sp.getBoolean(locationTracker.KEY_IS_TRACKING_ON_SP, false)
                 if (isTra) {
@@ -315,5 +393,76 @@ class MainActivity : AppCompatActivity() {
         } else {
             buttonSetHomeLocation.visibility = View.INVISIBLE
         }
+    }
+
+    //sms functions
+    private fun initSetSmsPhoneNumButton(){
+        setSmsPhoneNumButton.setOnClickListener(View.OnClickListener {
+            SendSmsPermissions()
+        })
+    }
+
+    private fun addPhoneNumToSp(){
+        val phoneNum = showAddPhoneNumDialog(this)
+        if (phoneNum != "" || phoneNum.isEmpty()) {//todo check if its can be
+            sp.edit().putString(phoneNum,null).apply()
+            testSmsButton.visibility=View.VISIBLE
+            deletePhoneNumButton.visibility=View.VISIBLE
+        }
+        else{
+            testSmsButton.visibility=View.INVISIBLE
+            deletePhoneNumButton.visibility=View.INVISIBLE
+        }
+    }
+
+    private fun SendSmsPermissions(){
+        val hasSmsPermission =ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) ==
+                PackageManager.PERMISSION_GRANTED
+        if(hasSmsPermission){
+            addPhoneNumToSp()
+        }
+        else{
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS),
+                PERMISSION_SMS_ID);
+        }
+    }
+
+    private fun showAddPhoneNumDialog(c: Context): String {
+        var task= ""
+        val inputText = EditText(c)
+        inputText.setRawInputType(InputType.TYPE_CLASS_PHONE)
+        val dialog: AlertDialog = AlertDialog.Builder(c)
+            .setTitle("Add a phone number")
+            .setMessage("Phone number: ")
+            .setView(inputText)
+            .setPositiveButton("Add",
+                DialogInterface.OnClickListener { dialog, which ->
+                    task = inputText.text.toString()
+                })
+            .setNegativeButton("Cancel", null)
+            .create()
+        dialog.show()
+        return task
+    }
+
+    private fun initTestSmsButton() {
+        testSmsButton.setOnClickListener(View.OnClickListener {
+            val intent = Intent("POST_PC.ACTION_SEND_SMS")
+            intent.putExtra("phone_number",sp.getString(KEY_PHONE_NUMBER_SP,null))
+            intent.putExtra("context","Honey I'm Home!")
+            LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
+
+        })
+        testSmsButton.visibility = View.INVISIBLE
+    }
+
+    private fun initDelPhoneNumButton(){
+        deletePhoneNumButton.setOnClickListener(View.OnClickListener {
+          if(sp.contains(KEY_PHONE_NUMBER_SP)){
+              sp.edit().remove(KEY_PHONE_NUMBER_SP).apply()
+              deletePhoneNumButton.visibility=View.INVISIBLE
+          }
+        })
+        deletePhoneNumButton.visibility=View.INVISIBLE
     }
 }

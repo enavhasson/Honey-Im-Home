@@ -1,27 +1,38 @@
 package com.example.honeyimhome
 
-import android.app.Notification
+import android.Manifest
+import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.telephony.SmsManager
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 
 class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastReceiver() {
-    val PHONE_NUM = "0547228509"
-    val SMS_MESSAGE_CONTENT = "hello to beautiful ex6"
-    val EMPTY_SP_VALUE = ""
+    private val PHONE_NUM = "0547228509"
+    private val SMS_MESSAGE_CONTENT = "hello to beautiful ex6"
+    private val EMPTY_SP_VALUE = ""
+    private val channelId = "SMS_CHANNEL_ID"
 
-    //TODO("check implementation")
     override fun onReceive(context: Context?, intent: Intent?) {
+        //safe check
+        //no date ,or not interesting intent action
+        if (intent == null || intent.action != "POST_PC.ACTION_SEND_SMS") {
+            return
+        }
+
         checkRunTimeSmsPermission()
 
         //have run time sms permission
-        val phoneNum = intent?.getStringExtra(PHONE_NUM)
-        val contentSmsMes = intent?.getStringExtra(SMS_MESSAGE_CONTENT)
+        val phoneNum = intent.getStringExtra(PHONE_NUM)
+        val contentSmsMes = intent.getStringExtra(SMS_MESSAGE_CONTENT)
 
         checkIntentValues(phoneNum, contentSmsMes)
 
@@ -30,19 +41,42 @@ class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastRec
         createPushNotification(phoneNum, contentSmsMes)
     }
 
+    private fun createSmsChannelIfNotExists() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
+            notificationManager.notificationChannels.forEach { channel ->
+                if (channel.id == channelId) {
+                    return
+                }
+            }
+
+            // Create the NotificationChannel
+            val name = "Sms Notification"
+            val descriptionText = "channel for Sms Notification"
+            val importance = NotificationManager.IMPORTANCE_DEFAULT
+            val channel = NotificationChannel(channelId, name, importance)
+            channel.description = descriptionText
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+
     private fun createPushNotification(phoneNum: String?, contentSmsMessage: String?) {
         //phone number and content sms message have a values
-        //todo check
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        val notification: Notification = NotificationCompat.Builder(context)
+        val notification = NotificationCompat.Builder(context, channelId)
             .setContentText("sending sms to $phoneNum:$contentSmsMessage")
-            .setContentTitle("ex6")
+            .setContentTitle("ex6 - Honey Im Home!")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
-        notification.flags = notification.flags or Notification.FLAG_AUTO_CANCEL
-        notificationManager.notify(0, notification)
+        //        notification.flags = notification.flags or Notification.FLAG_AUTO_CANCEL//todo?
 
+        // notificationId is a unique int for each notification that you must define
+        val notificationId = 6
+        NotificationManagerCompat.from(context).notify(notificationId, notification)
     }
 
     private fun sendSMSMessage(phoneNum: String?, contentSmsMessage: String?) {
@@ -59,59 +93,35 @@ class LocalSendSmsBroadcastReceiver(private val context: Context) : BroadcastRec
 
     /**
     check if one of the intent values is null or empty, log an error and return.
-    todo :return ? what is mean
      */
     private fun checkIntentValues(phone_num: String?, content_sms_message: String?) {
-        if (phone_num == null || phone_num == EMPTY_SP_VALUE) { //safe check
+        if (phone_num == null || phone_num == "" || phone_num == EMPTY_SP_VALUE) { //safe check
             Log.e("TAG_SMS_INTENT_SEND", "phone number is null or empty")
+            return
         }
-        if (content_sms_message == null || content_sms_message == EMPTY_SP_VALUE) { //safe check
+        if (content_sms_message == null || content_sms_message == "" || content_sms_message == EMPTY_SP_VALUE) { //safe check
             Log.e("TAG_SMS_INTENT_SEND", "content sms message is null or empty")
+            return
         }
     }
 
     private fun checkRunTimeSmsPermission() {
-        //todo check that we have the send-sms runtime permission
-        if (false) {//not have Run Time Sms Permission
+        val runTimePerm = isSmsPermissionGranted()
+        if (!runTimePerm) {//not have Run Time Sms Permission
             Log.e("TAG_SMS_Permission", "don't have SMS Permission")
-            //todo return? (. If not, log an error to the logcat and return)
+            return
         }
     }
 
-//    /**
-//     * Check if we have SMS permission
-//     */
-//    fun isSmsPermissionGranted(): Boolean {
-//        return ContextCompat.checkSelfPermission(
-//            this,
-//            Manifest.permission.READ_SMS
-//        ) == PackageManager.PERMISSION_GRANTED
-//    }
+    /**
+     * Check if we have SMS permission
+     */
+    private fun isSmsPermissionGranted(): Boolean {
+        return ActivityCompat.checkSelfPermission(
+            context,
+            Manifest.permission.SEND_SMS
+        ) == PackageManager.PERMISSION_GRANTED
+    }
 
-//    private checkSmsPermission(){
-//
-//        if(!requestReadAndSendSmsPermission()){
-//            Log.e("TAG_SMS_Permission","don't have SMS Permission")
-//            //todo return
-//        }
-//    }
-//
-//    /**
-//     * Request runtime SMS permission
-//     */
-//    private fun requestReadAndSendSmsPermission() {
-//        if (ActivityCompat.shouldShowRequestPermissionRationale(
-//                this,
-//                Manifest.permission.READ_SMS
-//            )
-//        ) {
-//            // You may display a non-blocking explanation here, read more in the documentation:
-//            // https://developer.android.com/training/permissions/requesting.html
-//        }
-//        ActivityCompat.requestPermissions(
-//            this,
-//            arrayOf(Manifest.permission.READ_SMS),
-//            SMS_PERMISSION_CODE
-//        )
-//    }
+
 }

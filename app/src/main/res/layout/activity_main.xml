@@ -62,25 +62,33 @@
         android:id="@+id/set_SMS_phone_number_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@id/inf_tracking_location_TextView"
+        android:layout_above="@+id/delete_phone_number_button"
         android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
         android:layout_marginStart="19dp"
         android:layout_marginBottom="10dp"
         android:background="#388E3C"
         android:text="@string/set_sms_phone_number" />
 
     <Button
+        android:id="@+id/delete_phone_number_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@id/inf_tracking_location_TextView"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:background="#00796B"
+        android:text="@string/delete_phone_number" />
+
+    <Button
         android:id="@+id/test_SMS_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/inf_tracking_location_TextView"
+        android:layout_above="@+id/delete_phone_number_button"
         android:layout_alignParentEnd="true"
-        android:layout_alignParentBottom="true"
         android:layout_marginEnd="19dp"
         android:layout_marginBottom="10dp"
-        android:background="#76DA7B"
         android:layout_toEndOf="@id/tracking_location_button"
+        android:background="#76DA7B"
         android:text="@string/test_sms" />
 
 </RelativeLayout>
