@@ -14,9 +14,11 @@ class SmsApplication : Application() {
         super.onCreate()
         val receiver = LocalSendSmsBroadcastReceiver()
         LocalBroadcastManager.getInstance(this)
-            .registerReceiver(receiver, IntentFilter("POST_PC.ACTION_SEND_SMS"))
+            .registerReceiver(receiver, IntentFilter(SEND_SMS_ACTION))
 
-        val work : PeriodicWorkRequest = PeriodicWorkRequestBuilder<TrackUserLocationWork>(15, TimeUnit.MINUTES).build()
+        val work: PeriodicWorkRequest =
+            PeriodicWorkRequestBuilder<TrackUserLocationWork>(15, TimeUnit.MINUTES)
+                .build()
         WorkManager.getInstance(this).enqueue(work)
     }
 }

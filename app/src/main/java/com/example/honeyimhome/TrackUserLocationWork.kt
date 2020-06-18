@@ -20,15 +20,20 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
     Worker(context, workerParams) {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var sp: SharedPreferences
+    private val TAG ="TrackUserLocationWork"
+    private val KEY_CURRENT_LOCATION_SP ="current"
+
+
 
     override fun doWork(): Result {
+//        Log.d("do_WORK","START WORK")
         if (!checkPermissions()) {
             return Result.success()
         }
 
-        sp = applicationContext.getSharedPreferences("mainSP", Context.MODE_PRIVATE)
+        sp = applicationContext.getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
 
-        if (!checkStoreParmsInPc()) {
+        if (!checkStoreParamsInPc()) {
             return Result.success()
         }
 
@@ -45,8 +50,7 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
         ) == PackageManager.PERMISSION_GRANTED
     }
 
-    private fun checkStoreParmsInPc(): Boolean {
-
+    private fun checkStoreParamsInPc(): Boolean {
         val location = sp.getString(KEY_USER_HOME_LOCATION_SP, null)
         val phone = sp.getString(KEY_PHONE_NUMBER_SP, null)
         if (location == null || phone.isNullOrEmpty()) {
@@ -76,17 +80,15 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
             val currentLocation =
                 LocationInfo(location.latitude, location.longitude, location.accuracy)
             val prevLocation = getLocationStoreSP(KEY_CUR_LOCATION_SP)
-            if (prevLocation == null) {
-                Log.e("value_null", "prev Location is null")
-            }
             fusedLocationClient.removeLocationUpdates(this)
-            sp.edit().putString("current", Gson().toJson(currentLocation)).apply()
+            sp.edit().putString(KEY_CURRENT_LOCATION_SP, Gson().toJson(currentLocation)).apply()
             val homeLocation = getLocationStoreSP(KEY_USER_HOME_LOCATION_SP)
             if(prevLocation==null||homeLocation==null){
+                Log.e(TAG, "prevLocation or homeLocation is null")
                 return
             }
             if (location.distanceTo(convertToLocationClass(prevLocation, "prev")) > 50 &&
-                location.distanceTo(convertToLocationClass(homeLocation, "prev")) < 50) {
+                location.distanceTo(convertToLocationClass(homeLocation, "home")) < 50) {
                 sendSms()
             }
         }
@@ -96,14 +98,14 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
     fun getLocationStoreSP(ket_SP: String): LocationInfo? {
         val currentLocationStr = sp.getString(ket_SP, null)
         if (currentLocationStr == null) {
-            Log.e("value_null", "$ket_SP is null")
+            Log.e(TAG, "$ket_SP is null")
         }
         return Gson().fromJson(currentLocationStr, LocationInfo::class.java)
 
     }
 
     private fun sendSms() {
-        val intent = Intent("POST_PC.ACTION_SEND_SMS")
+        val intent = Intent(SEND_SMS_ACTION)
         intent.putExtra(PHONE_NUM_INTENT, sp.getString(KEY_PHONE_NUMBER_SP, null))
         intent.putExtra(CONTEXT_INTENT, SMS_MESSAGE)
         LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
@@ -111,9 +113,9 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
 
     fun convertToLocationClass(locationInfo: LocationInfo, provider: String): Location {
         val location = Location(provider)
-        location.latitude = locationInfo.latitude
-        location.longitude = locationInfo.longitude
-        location.accuracy = locationInfo.accuracy
+        location.latitude = locationInfo.getLatitude()
+        location.longitude = locationInfo.getLongitude()
+        location.accuracy = locationInfo.getAccuracy()
         return location
     }
 }

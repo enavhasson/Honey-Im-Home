@@ -87,7 +87,6 @@
         android:layout_alignParentEnd="true"
         android:layout_marginEnd="19dp"
         android:layout_marginBottom="10dp"
-        android:layout_toEndOf="@id/tracking_location_button"
         android:background="#76DA7B"
         android:text="@string/test_sms" />
 

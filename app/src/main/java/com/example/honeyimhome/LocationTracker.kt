@@ -12,16 +12,16 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.*
 import com.google.gson.Gson
 
-val NEW_LOCTAION = "new_location"
-val END_TRACK_LOC = "end_location"
-val START_TRACK_LOC = "start_location"
-val KEY_IS_TRACKING_ON_SP = "isTrackingOn"
-val KEY_CUR_LOCATION_SP = "current_location"
+const val NEW_LOCATION = "new_location"
+const val END_TRACK_LOC = "end_location"
+const val START_TRACK_LOC = "start_location"
+const val KEY_IS_TRACKING_ON_SP = "isTrackingOn"
+const val KEY_CUR_LOCATION_SP = "current_location"
 
 
 class LocationTracker(
     private val context: Context,
-    var fusedLocationClient: FusedLocationProviderClient, var sp: SharedPreferences
+    private var fusedLocationClient: FusedLocationProviderClient, private var sp: SharedPreferences
 ) {
 
     private var isTrackingOn: Boolean = false
@@ -60,7 +60,7 @@ class LocationTracker(
     fun setNewLocation(location: Location) {
         val curLocation = LocationInfo(location.latitude, location.longitude, location.accuracy)
         sp.edit().putString(KEY_CUR_LOCATION_SP, Gson().toJson(curLocation)).apply()
-        sendBroadcast(NEW_LOCTAION)
+        sendBroadcast(NEW_LOCATION)
     }
 
     private val mLocationCallback: LocationCallback = object : LocationCallback() {

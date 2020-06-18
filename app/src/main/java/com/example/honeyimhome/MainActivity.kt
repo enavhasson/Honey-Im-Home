@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.text.isDigitsOnly
 import com.google.android.gms.location.LocationServices
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import com.google.gson.Gson
@@ -22,38 +23,41 @@ var KEY_PHONE_NUMBER_SP = "phone_number"
 val PHONE_NUM_INTENT = "phone_number"
 val CONTEXT_INTENT = "context"
 val SMS_MESSAGE = "Honey I'm Home!"
+val SP_NAME = "mainSP"
+val SEND_SMS_ACTION = "POST_PC.ACTION_SEND_SMS"
 
 
 class MainActivity : AppCompatActivity() {
 
     /* identify user's action with which permission request.*/
+    private val TAG = "MainActivity"
     private val PERMISSION_LOCATION_ID = 44
     private val PERMISSION_SMS_ID = 1546
-
     private val BUTTON_START_TEXT = "stop tracking"
     private val BUTTON_END_TEXT = "start tracking"
-
     private val NUM_TO_PRESENT_HOME_BUTTON = 50
 
     private lateinit var locationTracker: LocationTracker
     private lateinit var sp: SharedPreferences
     private lateinit var locationBroadCastReceiver: BroadcastReceiver
 
+    //location
     private lateinit var buttonLocation: Button
     private lateinit var buttonClearHome: Button
     private lateinit var buttonSetHomeLocation: Button
-
     private lateinit var lastLocationTextView: TextView
     private lateinit var userHomeLocationTextView: TextView
+
+    //sms
     private lateinit var setSmsPhoneNumButton: Button
-    private lateinit var testSmsButton:Button
-    private lateinit var deletePhoneNumButton:Button
+    private lateinit var testSmsButton: Button
+    private lateinit var deletePhoneNumButton: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        sp = getSharedPreferences("mainSP", Context.MODE_PRIVATE)
+        sp = getSharedPreferences(SP_NAME, Context.MODE_PRIVATE)
 
         //get users current position
         val fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -63,6 +67,7 @@ class MainActivity : AppCompatActivity() {
         initBroadcastReceiver()
         initButton()
         checkUserHomeLocation()
+        checkPhoneNum()
 
         if (savedInstanceState == null) {
             sp.edit().putBoolean(KEY_IS_TRACKING_ON_SP, false).apply()
@@ -100,7 +105,7 @@ class MainActivity : AppCompatActivity() {
 
         setSmsPhoneNumButton = findViewById(R.id.set_SMS_phone_number_button)
         testSmsButton = findViewById(R.id.test_SMS_button)
-        deletePhoneNumButton= findViewById(R.id.delete_phone_number_button)
+        deletePhoneNumButton = findViewById(R.id.delete_phone_number_button)
     }
 
     private fun initButton() {
@@ -132,10 +137,11 @@ class MainActivity : AppCompatActivity() {
 
     private fun initSetHomeLocationButton() {
         buttonSetHomeLocation.setOnClickListener(View.OnClickListener {
-            val curLocationStr = sp.getString(KEY_CUR_LOCATION_SP, "")
-            if (curLocationStr.equals("")) {
-                Log.d("TAP_HOME_LOCATION",
-                    "current location is empty while set home location")
+            val curLocationStr = sp.getString(KEY_CUR_LOCATION_SP, null)
+            if (curLocationStr == null) {
+                Log.e(
+                    TAG, "current location is empty while set home location"
+                )
             }
             sp.edit().putString(KEY_USER_HOME_LOCATION_SP, curLocationStr).apply()
 
@@ -159,6 +165,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     fun setViewOnNewLocation() {
+        val currentLocationStr = sp.getString(KEY_CUR_LOCATION_SP, null)
+        checkValidValueSP(currentLocationStr, KEY_CUR_LOCATION_SP)
         val currentLocation = Gson().fromJson(
             sp.getString(KEY_CUR_LOCATION_SP, null),
             LocationInfo::class.java
@@ -181,8 +189,6 @@ class MainActivity : AppCompatActivity() {
         setButtonEndTrackView()
         lastLocationTextView.visibility = View.INVISIBLE
         buttonSetHomeLocation.visibility = View.INVISIBLE
-        testSmsButton.visibility= View.INVISIBLE
-        deletePhoneNumButton.visibility=View.INVISIBLE
     }
 
     private fun initBroadcastReceiver() {
@@ -191,15 +197,15 @@ class MainActivity : AppCompatActivity() {
                 when (intent?.action) {
                     START_TRACK_LOC -> {
                         setViewOnStartTracking()
-                        Log.d("TAG_START_TRACKING", "Start Tracking")
+                        Log.d(TAG, "Start Tracking")
                     }
-                    NEW_LOCTAION -> {
+                    NEW_LOCATION -> {
                         setViewOnNewLocation()
-                        Log.d("TAG_NEW_LOCATION", "NEW_LOCATION Tracking")
+                        Log.d(TAG, "NEW_LOCATION Tracking")
                     }
                     END_TRACK_LOC -> {
                         setViewOnEndTracking()
-                        Log.d("TAG_END_TRACKING", "End Tracking")
+                        Log.d(TAG, "End Tracking")
                     }
 
 
@@ -209,7 +215,7 @@ class MainActivity : AppCompatActivity() {
         val intentFilter = IntentFilter()
         intentFilter.addAction(START_TRACK_LOC)
         intentFilter.addAction(END_TRACK_LOC)
-        intentFilter.addAction(NEW_LOCTAION)
+        intentFilter.addAction(NEW_LOCATION)
         this.registerReceiver(locationBroadCastReceiver, intentFilter)
     }
 
@@ -236,7 +242,7 @@ class MainActivity : AppCompatActivity() {
      * This method will request our necessary permissions to the user if they are not
      * already granted.
      */
-    private fun requestPermissions() {
+    private fun requestLocationPermissions() {
         ActivityCompat.requestPermissions(
             this,
             arrayOf(
@@ -289,6 +295,7 @@ class MainActivity : AppCompatActivity() {
     }
     */
 
+    //todo check
     /**
      * This method is called when a user Allow or Deny our requested permissions.
      * So it will help us to move forward if the permissions are granted.*/
@@ -325,14 +332,15 @@ class MainActivity : AppCompatActivity() {
                 if (grantResults.isNotEmpty()
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED
                 ) {
-                    setSmsPhoneNumButton.performClick()
+                    return
                 } else {
                     if (ActivityCompat.shouldShowRequestPermissionRationale(
                             this, Manifest.permission.SEND_SMS
                         )
-                    ) { Toast.makeText(
+                    ) {
+                        Toast.makeText(
                             applicationContext,
-                            "SMS faild, please try again.", Toast.LENGTH_LONG
+                            "SMS failed, please try again.", Toast.LENGTH_LONG
                         ).show()
                     }
                 }
@@ -368,7 +376,7 @@ class MainActivity : AppCompatActivity() {
                 startActivity(intent)
             }
         } else {
-            requestPermissions()
+            requestLocationPermissions()
         }
     }
 
@@ -377,12 +385,31 @@ class MainActivity : AppCompatActivity() {
 
     private fun checkUserHomeLocation() {
         if (sp.contains(KEY_USER_HOME_LOCATION_SP)) {
-            val userHomeStr = sp.getString(KEY_USER_HOME_LOCATION_SP, "")
+            val userHomeStr = sp.getString(KEY_USER_HOME_LOCATION_SP, null)
+            checkValidValueSP(userHomeStr, "userHomeStr")
             val userHomeLoc = Gson().fromJson(userHomeStr, LocationInfo::class.java)
             setUserHomeText(userHomeLoc)
             buttonClearHome.visibility = View.VISIBLE
         } else {
             userHomeLocationTextView.visibility = View.INVISIBLE
+        }
+    }
+
+    private fun checkValidValueSP(str: String?, name_val: String) {
+        if (str == null || str == "") { //safe check
+            Log.e(TAG, "$name_val is null or empty")
+            return
+        }
+    }
+
+    private fun checkPhoneNum() {
+        if (sp.getString(KEY_PHONE_NUMBER_SP, null) != null
+        ) {
+            testSmsButton.visibility = View.VISIBLE
+            deletePhoneNumButton.visibility = View.VISIBLE
+        } else {
+            testSmsButton.visibility = View.INVISIBLE
+            deletePhoneNumButton.visibility = View.INVISIBLE
         }
     }
 
@@ -402,74 +429,88 @@ class MainActivity : AppCompatActivity() {
     }
 
     //sms functions
-    private fun initSetSmsPhoneNumButton(){
+    private fun initSetSmsPhoneNumButton() {
         setSmsPhoneNumButton.setOnClickListener(View.OnClickListener {
-            SendSmsPermissions()
+            if (checkSendSmsPermission()) showAddPhoneNumDialog(this)
         })
     }
 
-    private fun addPhoneNumToSp(phoneNum:String){
-        //todo check for invalid value(not number ...)
-        if (phoneNum != "" && phoneNum.isNotEmpty()) {//todo check if its can be
-            sp.edit().putString(KEY_PHONE_NUMBER_SP,phoneNum).apply()
-            testSmsButton.visibility=View.VISIBLE
-            deletePhoneNumButton.visibility=View.VISIBLE
-        }
-        else{
-            testSmsButton.visibility=View.INVISIBLE
-            deletePhoneNumButton.visibility=View.INVISIBLE
+    private fun checkValidPhoneNum(phoneNum: String?): Boolean {
+        return phoneNum != null && phoneNum != "" && phoneNum.isNotEmpty() && phoneNum.length > 1
+                && (phoneNum[0].isDigit() || phoneNum[0] == '+')
+                && phoneNum.substring(1).isDigitsOnly()
+    }
+
+    private fun addPhoneNumToSp(phoneNum: String) {
+        // check for invalid value(not number ...)
+        if (checkValidPhoneNum(phoneNum)
+        ) {
+            sp.edit().putString(KEY_PHONE_NUMBER_SP, phoneNum).apply()
+            testSmsButton.visibility = View.VISIBLE
+            deletePhoneNumButton.visibility = View.VISIBLE
+        } else {
+            testSmsButton.visibility = View.INVISIBLE
+            deletePhoneNumButton.visibility = View.INVISIBLE
         }
     }
 
-    private fun SendSmsPermissions(){
-        val hasSmsPermission =ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) ==
-                PackageManager.PERMISSION_GRANTED
-        if(hasSmsPermission){
-            showAddPhoneNumDialog(this)
-//            addPhoneNumToSp()
+    private fun checkSendSmsPermission(): Boolean {
+        val hasSmsPermission =
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.SEND_SMS) ==
+                    PackageManager.PERMISSION_GRANTED
+        if (hasSmsPermission) {
+            return true
         }
-        else{
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.SEND_SMS),
-                PERMISSION_SMS_ID);
-        }
+        //requestSMSPermissions
+        ActivityCompat.requestPermissions(
+            this, arrayOf(Manifest.permission.SEND_SMS),
+            PERMISSION_SMS_ID
+        );
+        return false
     }
+
+
 
     private fun showAddPhoneNumDialog(c: Context) {
         val inputText = EditText(c)
         inputText.setRawInputType(InputType.TYPE_CLASS_PHONE)
         val dialog = AlertDialog.Builder(c)
-            .setTitle("Add a phone number")
-            .setMessage("Phone number: ")
             .setView(inputText)
-            .setPositiveButton("Add"){ dialog, which ->
-                    val input = inputText.text.toString()
-                    addPhoneNumToSp(input)
-                }
+            .setPositiveButton("Add") { _, _ ->
+                val input = inputText.text.toString()
+                addPhoneNumToSp(input)
+            }
             .setNegativeButton("Cancel", null)
-            .create()
+            .setTitle("Add a phone number")
+        val phoneNum = sp.getString(KEY_PHONE_NUMBER_SP, null)
+        if (phoneNum != null) { //phone num clear or never insert
+            dialog.setMessage("Store Phone number is: $phoneNum")
+        }
+        dialog.create()
         dialog.show()
     }
 
 
     private fun initTestSmsButton() {
         testSmsButton.setOnClickListener(View.OnClickListener {
-            val intent = Intent("POST_PC.ACTION_SEND_SMS")
-            intent.putExtra(PHONE_NUM_INTENT,sp.getString(KEY_PHONE_NUMBER_SP,null))
-            intent.putExtra(CONTEXT_INTENT, SMS_MESSAGE)
-            LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
-
+            if(checkSendSmsPermission()) {
+                val intent = Intent(SEND_SMS_ACTION)
+                intent.putExtra(PHONE_NUM_INTENT, sp.getString(KEY_PHONE_NUMBER_SP, null))
+                intent.putExtra(CONTEXT_INTENT, SMS_MESSAGE)
+                LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
+            }
         })
         testSmsButton.visibility = View.INVISIBLE
     }
 
-    private fun initDelPhoneNumButton(){
+    private fun initDelPhoneNumButton() {
         deletePhoneNumButton.setOnClickListener(View.OnClickListener {
-          if(sp.contains(KEY_PHONE_NUMBER_SP)){
-              sp.edit().remove(KEY_PHONE_NUMBER_SP).apply()
-              deletePhoneNumButton.visibility=View.INVISIBLE
-              testSmsButton.visibility=View.INVISIBLE
-          }
+            if (sp.contains(KEY_PHONE_NUMBER_SP)) {
+                sp.edit().remove(KEY_PHONE_NUMBER_SP).apply()
+                deletePhoneNumButton.visibility = View.INVISIBLE
+                testSmsButton.visibility = View.INVISIBLE
+            }
         })
-        deletePhoneNumButton.visibility=View.INVISIBLE
+        deletePhoneNumButton.visibility = View.INVISIBLE
     }
 }

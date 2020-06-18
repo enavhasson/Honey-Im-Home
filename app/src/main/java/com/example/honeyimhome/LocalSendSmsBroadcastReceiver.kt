@@ -1,7 +1,7 @@
 package com.example.honeyimhome
 
 import android.Manifest
-import android.app.Notification
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.BroadcastReceiver
@@ -17,30 +17,29 @@ import androidx.core.app.NotificationManagerCompat
 
 
 class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
-    private val PHONE_NUM = "phone_number"
-    private val SMS_MESSAGE_CONTENT = "context"
-    private val EMPTY_SP_VALUE = ""
-    private val channelId = "SMS_CHANNEL_ID"
+    private val channelId = "6"
+    private val TAG = "LocalSendSmsBroadcastReceiver"
+    private val NOTIFICATION_TITLE = "ex6 - Honey Im Home!"
 
     override fun onReceive(context: Context?, intent: Intent?) {
         //safe check
         //no date ,or not interesting intent action
-        if (intent == null || intent.action != "POST_PC.ACTION_SEND_SMS"|| context == null) {
+        if (intent == null || intent.action != SEND_SMS_ACTION || context == null) {
             return
         }
 
         checkRunTimeSmsPermission(context)
 
         //have run time sms permission
-        val phoneNum = intent.getStringExtra(PHONE_NUM)
-        val contentSmsMes = intent.getStringExtra(SMS_MESSAGE_CONTENT)
+        val phoneNum = intent.getStringExtra(PHONE_NUM_INTENT)
+        val contentSmsMes = intent.getStringExtra(CONTEXT_INTENT)
 
         checkIntentValues(phoneNum, contentSmsMes)
 
         //phone number and content sms message have a values
         sendSMSMessage(phoneNum, contentSmsMes)
         createSmsChannelIfNotExists(context)
-        createPushNotification(phoneNum, contentSmsMes,context)
+        createPushNotification(phoneNum, contentSmsMes, context)
     }
 
     private fun createSmsChannelIfNotExists(context: Context) {
@@ -67,12 +66,16 @@ class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
     }
 
 
-    private fun createPushNotification(phoneNum: String?, contentSmsMessage: String?,context: Context) {
+    private fun createPushNotification(
+        phoneNum: String?,
+        contentSmsMessage: String?,
+        context: Context
+    ) {
         //phone number and content sms message have a values
         val notification = NotificationCompat.Builder(context, channelId)
             .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentText("sending sms to $phoneNum:$contentSmsMessage")
-            .setContentTitle("ex6 - Honey Im Home!")
+            .setContentTitle(NOTIFICATION_TITLE)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
 
@@ -84,33 +87,32 @@ class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
     private fun sendSMSMessage(phoneNum: String?, contentSmsMessage: String?) {
         //phone number and content sms message have a values
         val smsManager: SmsManager = SmsManager.getDefault()
-        smsManager.sendTextMessage(phoneNum, null, contentSmsMessage, null, null)
-
-        //todo ,check if is needed
-//        Toast.makeText(
-//            ApplicationProvider.getApplicationContext(), "SMS sent.",
-//            Toast.LENGTH_LONG
-//        ).show()
+        smsManager.sendTextMessage(
+            phoneNum, null, contentSmsMessage,
+            null, null
+        )
     }
 
     /**
     check if one of the intent values is null or empty, log an error and return.
      */
+    @SuppressLint("LongLogTag")
     private fun checkIntentValues(phone_num: String?, content_sms_message: String?) {
-        if (phone_num == null || phone_num == "" || phone_num == EMPTY_SP_VALUE) { //safe check
-            Log.e("TAG_SMS_INTENT_SEND", "phone number is null or empty")
+        if (phone_num == null || phone_num == "") { //safe check
+            Log.e(TAG, "phone number is null or empty")
             return
         }
-        if (content_sms_message == null || content_sms_message == "" || content_sms_message == EMPTY_SP_VALUE) { //safe check
-            Log.e("TAG_SMS_INTENT_SEND", "content sms message is null or empty")
+        if (content_sms_message == null || content_sms_message == "") { //safe check
+            Log.e(TAG, "content sms message is null or empty")
             return
         }
     }
 
+    @SuppressLint("LongLogTag")
     private fun checkRunTimeSmsPermission(context: Context) {
         val runTimePerm = isSmsPermissionGranted(context)
         if (!runTimePerm) {//not have Run Time Sms Permission
-            Log.e("TAG_SMS_Permission", "don't have SMS Permission")
+            Log.e(TAG, "don't have SMS Permission")
             return
         }
     }

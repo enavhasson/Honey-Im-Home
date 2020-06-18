@@ -7,5 +7,5 @@
     <string name="set_home_location_button_text">" set location as home "</string>
     <string name="set_sms_phone_number">" set SMS phone number "</string>
     <string name="test_sms">" test SMS "</string>
-    <string name="delete_phone_number">\" delete phone number \"</string>
+    <string name="delete_phone_number">" delete phone number "</string>
 </resources>
