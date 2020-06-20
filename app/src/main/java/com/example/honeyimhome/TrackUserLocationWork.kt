@@ -21,10 +21,8 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var sp: SharedPreferences
     private val TAG ="TrackUserLocationWork"
-    private val KEY_CURRENT_LOCATION_SP ="current"
 
     override fun doWork(): Result {
-//        Log.d("do_WORK","START WORK")
         if (!checkPermissions()) {
             return Result.success()
         }
@@ -72,20 +70,23 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
 
     private val mLocationCallback: LocationCallback = object : LocationCallback() {
         override fun onLocationResult(locationResult: LocationResult) {
-            val location: Location = locationResult.lastLocation
-            if (location.accuracy >= 50) return
-            val currentLocation =
-                LocationInfo(location.latitude, location.longitude, location.accuracy)
-            val prevLocation = getLocationStoreSP(KEY_CUR_LOCATION_SP)
+            val current: Location = locationResult.lastLocation
+            if (current.accuracy >= 50) return
             fusedLocationClient.removeLocationUpdates(this)
-            sp.edit().putString(KEY_CURRENT_LOCATION_SP, Gson().toJson(currentLocation)).apply()
-            val homeLocation = getLocationStoreSP(KEY_USER_HOME_LOCATION_SP)
-            if(prevLocation==null||homeLocation==null){
-                Log.e(TAG, "prevLocation or homeLocation is null")
+            val currentLocation =
+                LocationInfo(current.latitude, current.longitude, current.accuracy)
+
+            val prevLocation = getLocationStoreSP(KEY_CUR_LOCATION_SP) ?: return
+            if (current.distanceTo(convertToLocationClass(prevLocation, "prev")) < 50){
+                sp.edit().putString(KEY_CUR_LOCATION_SP, Gson().toJson(currentLocation)).apply()
                 return
             }
-            if (location.distanceTo(convertToLocationClass(prevLocation, "prev")) > 50 &&
-                location.distanceTo(convertToLocationClass(homeLocation, "home")) < 50) {
+            val homeLocation = getLocationStoreSP(KEY_USER_HOME_LOCATION_SP)
+            if(homeLocation==null){
+                Log.e(TAG, "homeLocation is null")
+                return
+            }
+            if (current.distanceTo(convertToLocationClass(homeLocation, "home")) < 50) {
                 sendSms()
             }
         }
@@ -96,9 +97,9 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
         val currentLocationStr = sp.getString(ket_SP, null)
         if (currentLocationStr == null) {
             Log.e(TAG, "$ket_SP is null")
+            return null
         }
         return Gson().fromJson(currentLocationStr, LocationInfo::class.java)
-
     }
 
     private fun sendSms() {

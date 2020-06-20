@@ -36,8 +36,7 @@ class MainActivity : AppCompatActivity() {
     private val BUTTON_START_TEXT = "stop tracking"
     private val BUTTON_END_TEXT = "start tracking"
     private val NUM_TO_PRESENT_HOME_BUTTON = 50
-    private val SMS_DIALOG_EXPLAINING ="App need sms permission, for send an SMS message every time:" +
-                                   "1. test sms button is clicked \n" + "2. you go to home"
+    private val SMS_DIALOG_EXPLAINING ="App need sms permission, for send an SMS message "
 
     private lateinit var locationTracker: LocationTracker
     private lateinit var sp: SharedPreferences
@@ -209,8 +208,6 @@ class MainActivity : AppCompatActivity() {
                         setViewOnEndTracking()
                         Log.d(TAG, "End Tracking")
                     }
-
-
                 }
             }
         }
