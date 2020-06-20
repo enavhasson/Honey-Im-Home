@@ -17,9 +17,12 @@ import androidx.core.app.NotificationManagerCompat
 
 
 class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
-    private val channelId = "6"
+    private val CHANNEL_ID = "6"
     private val TAG = "LocalSendSmsBroadcastReceiver"
-    private val NOTIFICATION_TITLE = "ex6 - Honey Im Home!"
+    private val SMS_NOTIFICATION_TITLE = "ex6 - Honey Im Home!"
+
+    //a unique int for each notification
+    private val SMS_NOTIFICATION_ID =6
 
     override fun onReceive(context: Context?, intent: Intent?) {
         //safe check
@@ -48,7 +51,7 @@ class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
             notificationManager.notificationChannels.forEach { channel ->
-                if (channel.id == channelId) {
+                if (channel.id == CHANNEL_ID) {
                     return
                 }
             }
@@ -57,7 +60,7 @@ class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
             val name = "Sms Notification"
             val descriptionText = "channel for Sms Notification"
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel(channelId, name, importance)
+            val channel = NotificationChannel(CHANNEL_ID, name, importance)
             channel.description = descriptionText
             // Register the channel with the system; you can't change the importance
             // or other notification behaviors after this
@@ -72,16 +75,14 @@ class LocalSendSmsBroadcastReceiver() : BroadcastReceiver() {
         context: Context
     ) {
         //phone number and content sms message have a values
-        val notification = NotificationCompat.Builder(context, channelId)
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_background)
             .setContentText("sending sms to $phoneNum:$contentSmsMessage")
-            .setContentTitle(NOTIFICATION_TITLE)
+            .setContentTitle(SMS_NOTIFICATION_TITLE)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .build()
 
-        // notificationId is a unique int for each notification that you must define
-        val notificationId = 6
-        NotificationManagerCompat.from(context).notify(notificationId, notification)
+        NotificationManagerCompat.from(context).notify(SMS_NOTIFICATION_ID, notification)
     }
 
     private fun sendSMSMessage(phoneNum: String?, contentSmsMessage: String?) {

@@ -8,7 +8,7 @@ import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
 
-class SmsApplication : Application() {
+class myApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
@@ -17,7 +17,7 @@ class SmsApplication : Application() {
             .registerReceiver(receiver, IntentFilter(SEND_SMS_ACTION))
 
         val work: PeriodicWorkRequest =
-            PeriodicWorkRequestBuilder<TrackUserLocationWork>(15, TimeUnit.MINUTES)
+            PeriodicWorkRequestBuilder<TrackUserLocationWork>(30, TimeUnit.SECONDS)
                 .build()
         WorkManager.getInstance(this).enqueue(work)
     }

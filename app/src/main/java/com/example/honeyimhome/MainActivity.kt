@@ -36,6 +36,8 @@ class MainActivity : AppCompatActivity() {
     private val BUTTON_START_TEXT = "stop tracking"
     private val BUTTON_END_TEXT = "start tracking"
     private val NUM_TO_PRESENT_HOME_BUTTON = 50
+    private val SMS_DIALOG_EXPLAINING ="App need sms permission, for send an SMS message every time:" +
+                                   "1. test sms button is clicked \n" + "2. you go to home"
 
     private lateinit var locationTracker: LocationTracker
     private lateinit var sp: SharedPreferences
@@ -252,50 +254,6 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-
-    /*
-     * This method is called when a user Allow or Deny our requested permissions.
-     * So it will help us to move forward if the permissions are granted.
-    override fun onRequestPermissionsResult(
-        requestCode: Int, permissions: Array<String?>,
-        grantResults: IntArray
-    ) {
-        if (requestCode == PERMISSION_LOCATION_ID) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Granted. Start getting the location information
-                buttonLocation.performClick()
-            }
-        }
-        else if(requestCode == PERMISSION_SMS_ID) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Granted. Start getting the location information
-                buttonLocation.performClick()
-            }
-        }
-        else {
-            // the user has denied our request! =-O
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this, Manifest.permission.ACCESS_COARSE_LOCATION
-                ) || ActivityCompat.shouldShowRequestPermissionRationale(
-                    this, Manifest.permission.ACCESS_FINE_LOCATION
-                )||ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.SEND_SMS)
-            ) {
-                // reached here? means we asked the user for this permission more than once,
-                // and they still refuse. This would be a good time to open up a dialog
-                // explaining why we need this permission
-                Toast.makeText(
-                    applicationContext,
-                    "App can't operate without location permission",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }
-    }
-    */
-
-    //todo check
     /**
      * This method is called when a user Allow or Deny our requested permissions.
      * So it will help us to move forward if the permissions are granted.*/
@@ -306,7 +264,8 @@ class MainActivity : AppCompatActivity() {
     ) {
         when (requestCode) {
             PERMISSION_LOCATION_ID -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.
+                    PERMISSION_GRANTED) {
                     // Granted. Start getting the location information
                     buttonLocation.performClick()
                 } else {
@@ -332,6 +291,8 @@ class MainActivity : AppCompatActivity() {
                 if (grantResults.isNotEmpty()
                     && grantResults[0] == PackageManager.PERMISSION_GRANTED
                 ) {
+                    /*when the user accept our request for sms send permission
+                    he need to clicked again on the button that open up a sms dialog explaining*/
                     return
                 } else {
                     if (ActivityCompat.shouldShowRequestPermissionRationale(
@@ -340,7 +301,7 @@ class MainActivity : AppCompatActivity() {
                     ) {
                         Toast.makeText(
                             applicationContext,
-                            "SMS failed, please try again.", Toast.LENGTH_LONG
+                            SMS_DIALOG_EXPLAINING, Toast.LENGTH_LONG
                         ).show()
                     }
                 }

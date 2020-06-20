@@ -23,8 +23,6 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
     private val TAG ="TrackUserLocationWork"
     private val KEY_CURRENT_LOCATION_SP ="current"
 
-
-
     override fun doWork(): Result {
 //        Log.d("do_WORK","START WORK")
         if (!checkPermissions()) {
@@ -65,7 +63,6 @@ class TrackUserLocationWork(context: Context, workerParams: WorkerParameters) :
         mLocationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
         mLocationRequest.interval = 10000;
         mLocationRequest.fastestInterval = 5000;
-
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(applicationContext)
         fusedLocationClient.requestLocationUpdates(
             mLocationRequest, mLocationCallback,
