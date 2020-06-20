@@ -13,6 +13,7 @@ import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.text.isDigitsOnly
 import com.google.android.gms.location.LocationServices
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -157,12 +158,12 @@ class MainActivity : AppCompatActivity() {
 
     fun setViewOnStartTracking() {
         buttonLocation.text = BUTTON_START_TEXT
-        buttonLocation.setBackgroundColor(resources.getColor(R.color.colorRed))
+        buttonLocation.setBackgroundColor(ContextCompat.getColor(this,R.color.colorRed))
     }
 
     private fun setButtonEndTrackView() {
         buttonLocation.text = BUTTON_END_TEXT
-        buttonLocation.setBackgroundColor(resources.getColor(R.color.colorGreen))
+        buttonLocation.setBackgroundColor(ContextCompat.getColor(this,R.color.colorGreen))
     }
 
     fun setViewOnNewLocation() {
@@ -379,7 +380,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setVisibleHomeLocationButton(currentLocation: LocationInfo) {
-        if (currentLocation.getAccuracy()!! < NUM_TO_PRESENT_HOME_BUTTON) {
+        if (currentLocation.getAccuracy() < NUM_TO_PRESENT_HOME_BUTTON) {
             buttonSetHomeLocation.visibility = View.VISIBLE
         } else {
             buttonSetHomeLocation.visibility = View.INVISIBLE
